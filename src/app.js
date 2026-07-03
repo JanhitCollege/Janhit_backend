@@ -7,10 +7,16 @@ import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
 
 import authRouter from './routes/auth.routes.js';
+import campusRouter from './modules/campus/campus.routes.js';
+import newsNoticeRouter from './modules/newsNotice/newsNotice.routes.js';
+import facultyProfileRouter from './modules/facultyProfile/facultyProfile.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import CustomError from './utils/CustomError.js';
 
 const app = express();
+
+// Serve static uploads directory for local file fallback
+app.use('/uploads', express.static('uploads'));
 
 // 1. Security Middleware
 app.use(helmet());
@@ -63,6 +69,9 @@ app.get('/health', (req, res) => {
 
 // 8. API Routes
 app.use('/api/auth', authRouter);
+app.use('/api/campuses', campusRouter);
+app.use('/api/news-notices', newsNoticeRouter);
+app.use('/api/faculty-profiles', facultyProfileRouter);
 
 // 9. Handle Undefined Routes
 app.all('*', (req, res, next) => {

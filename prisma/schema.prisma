@@ -8,18 +8,140 @@ generator client {
 }
 
 model User {
-  id                 String    @id @default(uuid())
-  name               String
-  email              String    @unique
-  mobile             String    @unique
-  password           String
-  role               String    @default("ADMIN")
-  isActive           Boolean   @default(true)
-  refreshToken       String?   @db.Text
-  resetPasswordToken String?   @db.Text
+  id                  String    @id @default(uuid())
+  name                String
+  email               String    @unique
+  mobile              String    @unique
+  password            String
+  role                String    @default("ADMIN")
+  isActive            Boolean   @default(true)
+  refreshToken        String?   @db.Text
+  resetPasswordToken  String?   @db.Text
   resetPasswordExpire DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@map("users")
+}
+
+model Campus {
+  id          String   @id @default(uuid())
+  name        String
+  shortName   String?
+  code        String   @unique
+  slug        String   @unique
+  subdomain   String   @unique
+  logo        String?
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  pincode     String?
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  newsNotices NewsNoticeCampus[]
+  facultyProfiles FacultyProfile[]
+
+  @@map("campuses")
+}
+
+enum NewsNoticeType {
+  NEWS
+  NOTICE
+}
+
+enum NewsNoticeVisibility {
+  GROUP
+  CAMPUS
+}
+
+enum NewsNoticePriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum NewsNoticeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model NewsNotice {
+  id              String               @id @default(uuid())
+  title           String
+  slug            String               @unique
+  excerpt         String               @db.Text
+  description     String               @db.Text
+  thumbnail       String?
+  attachment      String?
+  type            NewsNoticeType
+  visibility      NewsNoticeVisibility
+  featured        Boolean              @default(false)
+  priority        NewsNoticePriority   @default(MEDIUM)
+  priorityWeight  Int                  @default(2)
+  publishDate     DateTime
+  expiryDate      DateTime?
+  status          NewsNoticeStatus     @default(DRAFT)
+  metaTitle       String?
+  metaDescription String?              @db.Text
+  metaKeywords    String?
+  viewCount       Int                  @default(0)
+  downloadCount   Int                  @default(0)
+  createdBy       String
+  updatedBy       String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  deletedAt       DateTime?
+
+  campuses        NewsNoticeCampus[]
+
+  @@map("news_notices")
+}
+
+model NewsNoticeCampus {
+  id           String     @id @default(uuid())
+  newsNoticeId String
+  campusId     String
+
+  newsNotice   NewsNotice @relation(fields: [newsNoticeId], references: [id], onDelete: Cascade)
+  campus       Campus     @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@unique([newsNoticeId, campusId])
+  @@map("news_notice_campuses")
+}
+
+model FacultyProfile {
+  id               String   @id @default(uuid())
+  campusId         String?
+  image            String?
+  name             String?
+  designation      String?
+  department       String?
+  qualification    String?
+  specialization   String?
+  experience       String?
+  email            String?
+  phone            String?
+  linkedin         String?
+  researchInterest String?  @db.Text
+  subjects         String?  @db.Text
+  publications     String?  @db.Text
+  awards           String?  @db.Text
+  bio              String?  @db.Text
+  message          String?  @db.Text
+  displayOrder     Int?
+  isHod            Boolean  @default(false)
+  isFeatured       Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  campus           Campus?  @relation(fields: [campusId], references: [id], onDelete: SetNull)
+
+  @@map("faculty_profiles")
 }
