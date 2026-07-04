@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import app from './app.js';
 import prisma from './config/prisma.js';
 import logger from './utils/logger.js';
+import { validateStorageConfig } from './modules/gallery/gallery.storage.js';
 
 // Load environment variables before importing components
 dotenv.config();
@@ -10,6 +11,9 @@ const PORT = process.env.PORT || 5000;
 
 async function bootstrap() {
   try {
+    // Validate storage configuration on startup
+    validateStorageConfig();
+
     logger.info('Connecting to PostgreSQL database...');
     // Verify database connectivity
     await prisma.$connect();

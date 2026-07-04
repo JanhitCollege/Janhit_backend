@@ -10,6 +10,8 @@ import authRouter from './routes/auth.routes.js';
 import campusRouter from './modules/campus/campus.routes.js';
 import newsNoticeRouter from './modules/newsNotice/newsNotice.routes.js';
 import facultyProfileRouter from './modules/facultyProfile/facultyProfile.routes.js';
+import admissionLeadRouter from './modules/admissionLead/admissionLead.routes.js';
+import galleryRouter from './modules/gallery/gallery.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import CustomError from './utils/CustomError.js';
 
@@ -72,6 +74,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/campuses', campusRouter);
 app.use('/api/news-notices', newsNoticeRouter);
 app.use('/api/faculty-profiles', facultyProfileRouter);
+app.use('/api', admissionLeadRouter);
+app.use('/api', galleryRouter);
 
 // 9. Handle Undefined Routes
 app.all('*', (req, res, next) => {

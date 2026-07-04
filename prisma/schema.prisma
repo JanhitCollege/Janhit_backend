@@ -45,6 +45,8 @@ model Campus {
 
   newsNotices NewsNoticeCampus[]
   facultyProfiles FacultyProfile[]
+  admissionLeads AdmissionLead[]
+  galleries Gallery[]
 
   @@map("campuses")
 }
@@ -144,4 +146,69 @@ model FacultyProfile {
   campus           Campus?  @relation(fields: [campusId], references: [id], onDelete: SetNull)
 
   @@map("faculty_profiles")
+}
+
+enum AdmissionLeadStatus {
+  NEW
+  CONTACTED
+  ADMISSION_DONE
+  CLOSED
+}
+
+model AdmissionLead {
+  id        String              @id @default(uuid())
+  name      String
+  email     String
+  mobile    String
+  course    String
+  campusId  String
+  status    AdmissionLeadStatus @default(NEW)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  campus    Campus              @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@map("admission_leads")
+}
+
+model Gallery {
+  id          String   @id @default(uuid())
+
+  campusId    String
+  campus      Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  title       String?
+  description String?
+  category    String?
+
+  mediaType   GalleryMediaType
+
+  fileUrl     String
+  thumbnail   String?
+
+  fileName    String?
+  mimeType    String?
+  fileSize    Int?
+
+  width       Int?
+  height      Int?
+  duration    Int?
+
+  sortOrder   Int      @default(0)
+
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campusId])
+  @@index([mediaType])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("galleries")
+}
+
+enum GalleryMediaType {
+  IMAGE
+  VIDEO
 }
