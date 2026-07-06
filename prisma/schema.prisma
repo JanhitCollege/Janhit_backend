@@ -49,6 +49,7 @@ model Campus {
   galleries Gallery[]
   downloads Download[]
   events EventCampus[]
+  committees CommitteeCampus[]
 
   @@map("campuses")
 }
@@ -298,4 +299,96 @@ model EventCampus {
 
   @@unique([eventId, campusId])
   @@map("event_campuses")
+}
+
+enum CommitteeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CommitteeDocumentType {
+  ORDER
+  NOTICE
+  MINUTES
+  REPORT
+  CIRCULAR
+  OTHER
+}
+
+model Committee {
+  id               String            @id @default(uuid())
+  title            String
+  slug             String            @unique
+  category         String?
+  shortDescription String?           @db.Text
+  description      String?           @db.Text
+  objective        String?           @db.Text
+  committeeType    String?
+  academicSession  String?
+  tenureFrom       DateTime?
+  tenureTo         DateTime?
+  bannerImage      String?
+  status           CommitteeStatus   @default(DRAFT)
+  publishDate      DateTime?
+  displayOrder     Int               @default(0)
+  isMainWebsite    Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  members          CommitteeMember[]
+  documents        CommitteeDocument[]
+  campuses         CommitteeCampus[]
+
+  @@map("committees")
+}
+
+model CommitteeMember {
+  id            String    @id @default(uuid())
+  committeeId   String
+  name          String
+  designation   String?
+  committeeRole String
+  department    String?
+  photo         String?
+  email         String?
+  phone         String?
+  tenureFrom    DateTime?
+  tenureTo      DateTime?
+  displayOrder  Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  committee     Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+
+  @@map("committee_members")
+}
+
+model CommitteeDocument {
+  id           String                @id @default(uuid())
+  committeeId  String
+  title        String
+  description  String?               @db.Text
+  documentUrl  String
+  fileType     String
+  documentType CommitteeDocumentType @default(OTHER)
+  displayOrder Int                   @default(0)
+  createdAt    DateTime              @default(now())
+
+  committee    Committee             @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+
+  @@map("committee_documents")
+}
+
+model CommitteeCampus {
+  id          String    @id @default(uuid())
+  committeeId String
+  campusId    String
+
+  committee   Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  campus      Campus    @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@unique([committeeId, campusId])
+  @@map("committee_campuses")
 }

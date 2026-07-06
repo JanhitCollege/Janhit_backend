@@ -14,6 +14,7 @@ import admissionLeadRouter from './modules/admissionLead/admissionLead.routes.js
 import galleryRouter from './modules/gallery/gallery.routes.js';
 import downloadRouter from './modules/downloads/download.routes.js';
 import eventRouter from './modules/event/event.routes.js';
+import committeeRouter from './modules/committee/committee.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import CustomError from './utils/CustomError.js';
 
@@ -81,6 +82,7 @@ app.use('/api', admissionLeadRouter);
 app.use('/api', galleryRouter);
 app.use('/api', downloadRouter);
 app.use('/api', eventRouter);
+app.use('/api', committeeRouter);
 
 // 9. Handle Undefined Routes
 app.all('*', (req, res, next) => {
