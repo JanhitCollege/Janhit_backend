@@ -47,6 +47,8 @@ model Campus {
   facultyProfiles FacultyProfile[]
   admissionLeads AdmissionLead[]
   galleries Gallery[]
+  downloads Download[]
+  events EventCampus[]
 
   @@map("campuses")
 }
@@ -211,4 +213,89 @@ model Gallery {
 enum GalleryMediaType {
   IMAGE
   VIDEO
+}
+
+enum DownloadCategory {
+  ADMISSION_FORM
+  BROCHURE
+  FEE_STRUCTURE
+  PROSPECTUS
+  ACADEMIC_CALENDAR
+  SYLLABUS
+  EXAM_SCHEDULE
+  NOTICE
+  HOSTEL_FORM
+  SCHOLARSHIP_FORM
+  PLACEMENT_BROCHURE
+  MAGAZINE
+  OTHER
+}
+
+model Download {
+  id          String           @id @default(uuid())
+  campusId    String?
+  title       String
+  slug        String           @unique
+  description String?          @db.Text
+  category    DownloadCategory
+  fileUrl     String
+  fileName    String
+  fileType    String
+  fileSize    Int
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  campus      Campus?          @relation(fields: [campusId], references: [id], onDelete: SetNull)
+
+  @@index([campusId])
+  @@index([category])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("downloads")
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Event {
+  id               String        @id @default(uuid())
+  title            String
+  slug             String        @unique
+  shortDescription String?       @db.Text
+  description      String        @db.Text
+  bannerImage      String?
+  startDate        DateTime
+  endDate          DateTime?
+  startTime        String?
+  endTime          String?
+  venue            String?
+  organizer        String?
+  registrationLink String?
+  isMainWebsite    Boolean       @default(false)
+  status           EventStatus   @default(DRAFT)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  campuses         EventCampus[]
+
+  @@index([status])
+  @@index([startDate])
+  @@index([createdAt])
+  @@map("events")
+}
+
+model EventCampus {
+  id       String @id @default(uuid())
+  eventId  String
+  campusId String
+
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, campusId])
+  @@map("event_campuses")
 }

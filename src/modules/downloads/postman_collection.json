@@ -1,0 +1,444 @@
+{
+  "info": {
+    "_postman_id": "download-mgmt-api-collection",
+    "name": "Janhit Downloads Management API",
+    "description": "Collection of all API endpoints for the Downloads Management module in Janhit Backend, covering both Administrative (protected) and Public (unprotected) routes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@janhitgroup.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Log in as administrator to receive the JWT authentication token. Set the returned access token as a Bearer Token in your collection variables or header configuration."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin Downloads APIs",
+      "item": [
+        {
+          "name": "Create Download",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Admission Application Form 2026-27",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "ADMISSION_FORM",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Official form required for applying to undergraduate and postgraduate programs.",
+                  "type": "text"
+                },
+                {
+                  "key": "campusId",
+                  "value": "null",
+                  "description": "Optional campus UUID. Send 'null' or omit if it applies to all campuses.",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Allowed files: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/downloads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "downloads"
+              ]
+            },
+            "description": "Upload a new downloadable document. Requires admin authorization. Allowed document formats: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX."
+          },
+          "response": []
+        },
+        {
+          "name": "List Downloads (Admin)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/downloads?page=1&limit=10&search=Admission&category=ADMISSION_FORM&isActive=true&sortBy=newest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "downloads"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of results per page"
+                },
+                {
+                  "key": "search",
+                  "value": "Admission",
+                  "description": "Search keyword matching title or description"
+                },
+                {
+                  "key": "category",
+                  "value": "ADMISSION_FORM",
+                  "description": "Filter by DownloadCategory enum value"
+                },
+                {
+                  "key": "campusId",
+                  "value": "null",
+                  "description": "Filter by campus UUID. Pass 'null' for global downloads.",
+                  "disabled": true
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "description": "Filter by active status (true/false)"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "newest",
+                  "description": "Sorting option: newest, oldest, alphabetical"
+                }
+              ]
+            },
+            "description": "Retrieve all downloads for administration, with complete support for pagination, search filters, category/campus/status filters, and sorting."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Download Details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/downloads/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "downloads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "download-uuid-here",
+                  "description": "UUID of the download item"
+                }
+              ]
+            },
+            "description": "Fetch detailed information of a specific download item using its UUID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Download",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Admission Application Form 2026-27 (Revised)",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "ADMISSION_FORM",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Revised application form for undergraduate programs.",
+                  "type": "text"
+                },
+                {
+                  "key": "campusId",
+                  "value": "null",
+                  "type": "text"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional file update. If provided, replaces the old file on storage."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/downloads/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "downloads",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "download-uuid-here",
+                  "description": "UUID of the download item to update"
+                }
+              ]
+            },
+            "description": "Modify the attributes of an existing download. Optional file upload replaces the previous file in storage."
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/downloads/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "downloads",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "download-uuid-here",
+                  "description": "UUID of the download item"
+                }
+              ]
+            },
+            "description": "Toggles the active state (isActive) of the downloadable document. No request body is required."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Public Downloads APIs",
+      "item": [
+        {
+          "name": "List Downloads (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/downloads?page=1&limit=10&category=BROCHURE&campus=janhit-main-campus&search=Prospectus",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "downloads"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of results per page"
+                },
+                {
+                  "key": "category",
+                  "value": "BROCHURE",
+                  "description": "Filter active downloads by category"
+                },
+                {
+                  "key": "campus",
+                  "value": "janhit-main-campus",
+                  "description": "Filter by campus slug (returns campus-specific + global downloads)"
+                },
+                {
+                  "key": "campusId",
+                  "value": "campus-uuid-here",
+                  "description": "Filter directly by campus ID (alternative to slug)",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "Prospectus",
+                  "description": "Keywords matching title or description"
+                }
+              ]
+            },
+            "description": "Retrieve active downloadable documents for the public website. Includes global documents and campus-specific documents."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Download by Slug (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/downloads/:slug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "public",
+                "downloads",
+                ":slug"
+              ],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "admission-application-form-2026-27",
+                  "description": "Unique auto-generated slug of the active document"
+                }
+              ]
+            },
+            "description": "Fetch details of an active downloadable document using its unique slug."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "paste-bearer-jwt-token-here",
+      "type": "string"
+    }
+  ]
+}
