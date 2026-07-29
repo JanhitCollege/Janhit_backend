@@ -28,8 +28,44 @@ app.use('/uploads', express.static('uploads'));
 app.use(helmet());
 
 // 2. CORS configuration
+const allowedOrigins = [
+  'http://localhost:8080',
+  'http://localhost:5173',
+  'https://jwsgn.janhitgroup.com',
+  'https://janhitgroup.com',
+  'https://www.janhitgroup.com',
+  'https://jclgn.janhitgroup.com',
+  'https://jieign.janhitgroup.com',
+  'https://jiegzb.janhitgroup.com',
+  'https://jdcsre.janhitgroup.com',
+  'https://jwsgzb.janhitgroup.com',
+  'https://jwssre.janhitgroup.com'
+];
+
+if (process.env.FRONTEND_URL) {
+  const envOrigins = process.env.FRONTEND_URL.split(',')
+    .map(url => url.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+  envOrigins.forEach(origin => {
+    if (!allowedOrigins.includes(origin)) {
+      allowedOrigins.push(origin);
+    }
+  });
+}
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, or same-origin)
+    if (!origin) return callback(null, true);
+    
+    const normalizedOrigin = origin.trim().replace(/\/$/, '');
+    
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

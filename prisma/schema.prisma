@@ -1,10 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model User {
@@ -15,8 +15,8 @@ model User {
   password            String
   role                String    @default("ADMIN")
   isActive            Boolean   @default(true)
-  refreshToken        String?   @db.Text
-  resetPasswordToken  String?   @db.Text
+  refreshToken        String?
+  resetPasswordToken  String?
   resetPasswordExpire DateTime?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -25,33 +25,280 @@ model User {
 }
 
 model Campus {
-  id          String   @id @default(uuid())
-  name        String
-  shortName   String?
-  code        String   @unique
-  slug        String   @unique
-  subdomain   String   @unique
-  logo        String?
-  email       String?
-  phone       String?
-  address     String?
-  city        String?
-  state       String?
-  pincode     String?
-  description String?  @db.Text
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  newsNotices NewsNoticeCampus[]
+  id              String             @id @default(uuid())
+  name            String
+  shortName       String?
+  code            String             @unique
+  slug            String             @unique
+  subdomain       String             @unique
+  logo            String?
+  email           String?
+  phone           String?
+  address         String?
+  city            String?
+  state           String?
+  pincode         String?
+  description     String?
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  admissionLeads  AdmissionLead[]
+  committees      CommitteeCampus[]
+  downloads       Download[]
+  events          EventCampus[]
   facultyProfiles FacultyProfile[]
-  admissionLeads AdmissionLead[]
-  galleries Gallery[]
-  downloads Download[]
-  events EventCampus[]
-  committees CommitteeCampus[]
+  galleries       Gallery[]
+  newsNotices     NewsNoticeCampus[]
 
   @@map("campuses")
+}
+
+model NewsNotice {
+  id              String               @id @default(uuid())
+  title           String
+  slug            String               @unique
+  excerpt         String
+  description     String
+  thumbnail       String?
+  attachment      String?
+  type            NewsNoticeType
+  visibility      NewsNoticeVisibility
+  featured        Boolean              @default(false)
+  priority        NewsNoticePriority   @default(MEDIUM)
+  priorityWeight  Int                  @default(2)
+  publishDate     DateTime
+  expiryDate      DateTime?
+  status          NewsNoticeStatus     @default(DRAFT)
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  viewCount       Int                  @default(0)
+  downloadCount   Int                  @default(0)
+  createdBy       String
+  updatedBy       String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  deletedAt       DateTime?
+  campuses        NewsNoticeCampus[]
+
+  @@map("news_notices")
+}
+
+model NewsNoticeCampus {
+  id           String     @id @default(uuid())
+  newsNoticeId String
+  campusId     String
+  campus       Campus     @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  newsNotice   NewsNotice @relation(fields: [newsNoticeId], references: [id], onDelete: Cascade)
+
+  @@unique([newsNoticeId, campusId])
+  @@map("news_notice_campuses")
+}
+
+model FacultyProfile {
+  id               String   @id @default(uuid())
+  campusId         String?
+  image            String?
+  name             String?
+  designation      String?
+  department       String?
+  qualification    String?
+  specialization   String?
+  experience       String?
+  email            String?
+  phone            String?
+  linkedin         String?
+  researchInterest String?
+  subjects         String?
+  publications     String?
+  awards           String?
+  bio              String?
+  message          String?
+  displayOrder     Int?
+  isHod            Boolean  @default(false)
+  isFeatured       Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  campus           Campus?  @relation(fields: [campusId], references: [id])
+
+  @@map("faculty_profiles")
+}
+
+model AdmissionLead {
+  id        String              @id @default(uuid())
+  name      String
+  email     String
+  mobile    String
+  course    String
+  campusId  String
+  status    AdmissionLeadStatus @default(NEW)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  campus    Campus              @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@map("admission_leads")
+}
+
+model Gallery {
+  id          String           @id @default(uuid())
+  campusId    String
+  title       String?
+  description String?
+  category    String?
+  mediaType   GalleryMediaType
+  fileUrl     String
+  thumbnail   String?
+  fileName    String?
+  mimeType    String?
+  fileSize    Int?
+  width       Int?
+  height      Int?
+  duration    Int?
+  sortOrder   Int              @default(0)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  campus      Campus           @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@index([campusId])
+  @@index([mediaType])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("galleries")
+}
+
+model Download {
+  id          String           @id @default(uuid())
+  campusId    String?
+  title       String
+  slug        String           @unique
+  description String?
+  category    DownloadCategory
+  fileUrl     String
+  fileName    String
+  fileType    String
+  fileSize    Int
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  campus      Campus?          @relation(fields: [campusId], references: [id])
+
+  @@index([campusId])
+  @@index([category])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("downloads")
+}
+
+model Event {
+  id               String        @id @default(uuid())
+  title            String
+  slug             String        @unique
+  shortDescription String?
+  description      String
+  bannerImage      String?
+  startDate        DateTime
+  endDate          DateTime?
+  startTime        String?
+  endTime          String?
+  venue            String?
+  organizer        String?
+  registrationLink String?
+  isMainWebsite    Boolean       @default(false)
+  status           EventStatus   @default(DRAFT)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  campuses         EventCampus[]
+
+  @@index([status])
+  @@index([startDate])
+  @@index([createdAt])
+  @@map("events")
+}
+
+model EventCampus {
+  id       String @id @default(uuid())
+  eventId  String
+  campusId String
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, campusId])
+  @@map("event_campuses")
+}
+
+model Committee {
+  id               String              @id @default(uuid())
+  title            String
+  slug             String              @unique
+  shortDescription String?
+  description      String?
+  objective        String?
+  committeeType    String?
+  academicSession  String?
+  tenureFrom       DateTime?
+  tenureTo         DateTime?
+  bannerImage      String?
+  status           CommitteeStatus     @default(DRAFT)
+  publishDate      DateTime?
+  displayOrder     Int                 @default(0)
+  isMainWebsite    Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  category         String?
+  campuses         CommitteeCampus[]
+  documents        CommitteeDocument[]
+  members          CommitteeMember[]
+
+  @@map("committees")
+}
+
+model CommitteeMember {
+  id            String    @id @default(uuid())
+  committeeId   String
+  name          String
+  designation   String?
+  committeeRole String
+  department    String?
+  photo         String?
+  email         String?
+  phone         String?
+  tenureFrom    DateTime?
+  tenureTo      DateTime?
+  displayOrder  Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  committee     Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+
+  @@map("committee_members")
+}
+
+model CommitteeDocument {
+  id           String                @id @default(uuid())
+  committeeId  String
+  title        String
+  description  String?
+  documentUrl  String
+  fileType     String
+  documentType CommitteeDocumentType @default(OTHER)
+  displayOrder Int                   @default(0)
+  createdAt    DateTime              @default(now())
+  committee    Committee             @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+
+  @@map("committee_documents")
+}
+
+model CommitteeCampus {
+  id          String    @id @default(uuid())
+  committeeId String
+  campusId    String
+  campus      Campus    @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  committee   Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+
+  @@unique([committeeId, campusId])
+  @@map("committee_campuses")
 }
 
 enum NewsNoticeType {
@@ -76,139 +323,11 @@ enum NewsNoticeStatus {
   ARCHIVED
 }
 
-model NewsNotice {
-  id              String               @id @default(uuid())
-  title           String
-  slug            String               @unique
-  excerpt         String               @db.Text
-  description     String               @db.Text
-  thumbnail       String?
-  attachment      String?
-  type            NewsNoticeType
-  visibility      NewsNoticeVisibility
-  featured        Boolean              @default(false)
-  priority        NewsNoticePriority   @default(MEDIUM)
-  priorityWeight  Int                  @default(2)
-  publishDate     DateTime
-  expiryDate      DateTime?
-  status          NewsNoticeStatus     @default(DRAFT)
-  metaTitle       String?
-  metaDescription String?              @db.Text
-  metaKeywords    String?
-  viewCount       Int                  @default(0)
-  downloadCount   Int                  @default(0)
-  createdBy       String
-  updatedBy       String?
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  deletedAt       DateTime?
-
-  campuses        NewsNoticeCampus[]
-
-  @@map("news_notices")
-}
-
-model NewsNoticeCampus {
-  id           String     @id @default(uuid())
-  newsNoticeId String
-  campusId     String
-
-  newsNotice   NewsNotice @relation(fields: [newsNoticeId], references: [id], onDelete: Cascade)
-  campus       Campus     @relation(fields: [campusId], references: [id], onDelete: Cascade)
-
-  @@unique([newsNoticeId, campusId])
-  @@map("news_notice_campuses")
-}
-
-model FacultyProfile {
-  id               String   @id @default(uuid())
-  campusId         String?
-  image            String?
-  name             String?
-  designation      String?
-  department       String?
-  qualification    String?
-  specialization   String?
-  experience       String?
-  email            String?
-  phone            String?
-  linkedin         String?
-  researchInterest String?  @db.Text
-  subjects         String?  @db.Text
-  publications     String?  @db.Text
-  awards           String?  @db.Text
-  bio              String?  @db.Text
-  message          String?  @db.Text
-  displayOrder     Int?
-  isHod            Boolean  @default(false)
-  isFeatured       Boolean  @default(false)
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  campus           Campus?  @relation(fields: [campusId], references: [id], onDelete: SetNull)
-
-  @@map("faculty_profiles")
-}
-
 enum AdmissionLeadStatus {
   NEW
   CONTACTED
   ADMISSION_DONE
   CLOSED
-}
-
-model AdmissionLead {
-  id        String              @id @default(uuid())
-  name      String
-  email     String
-  mobile    String
-  course    String
-  campusId  String
-  status    AdmissionLeadStatus @default(NEW)
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-
-  campus    Campus              @relation(fields: [campusId], references: [id], onDelete: Cascade)
-
-  @@map("admission_leads")
-}
-
-model Gallery {
-  id          String   @id @default(uuid())
-
-  campusId    String
-  campus      Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
-
-  title       String?
-  description String?
-  category    String?
-
-  mediaType   GalleryMediaType
-
-  fileUrl     String
-  thumbnail   String?
-
-  fileName    String?
-  mimeType    String?
-  fileSize    Int?
-
-  width       Int?
-  height      Int?
-  duration    Int?
-
-  sortOrder   Int      @default(0)
-
-  isActive    Boolean  @default(true)
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([campusId])
-  @@index([mediaType])
-  @@index([isActive])
-  @@index([createdAt])
-  @@map("galleries")
 }
 
 enum GalleryMediaType {
@@ -232,73 +351,10 @@ enum DownloadCategory {
   OTHER
 }
 
-model Download {
-  id          String           @id @default(uuid())
-  campusId    String?
-  title       String
-  slug        String           @unique
-  description String?          @db.Text
-  category    DownloadCategory
-  fileUrl     String
-  fileName    String
-  fileType    String
-  fileSize    Int
-  isActive    Boolean          @default(true)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  campus      Campus?          @relation(fields: [campusId], references: [id], onDelete: SetNull)
-
-  @@index([campusId])
-  @@index([category])
-  @@index([isActive])
-  @@index([createdAt])
-  @@map("downloads")
-}
-
 enum EventStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
-}
-
-model Event {
-  id               String        @id @default(uuid())
-  title            String
-  slug             String        @unique
-  shortDescription String?       @db.Text
-  description      String        @db.Text
-  bannerImage      String?
-  startDate        DateTime
-  endDate          DateTime?
-  startTime        String?
-  endTime          String?
-  venue            String?
-  organizer        String?
-  registrationLink String?
-  isMainWebsite    Boolean       @default(false)
-  status           EventStatus   @default(DRAFT)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  campuses         EventCampus[]
-
-  @@index([status])
-  @@index([startDate])
-  @@index([createdAt])
-  @@map("events")
-}
-
-model EventCampus {
-  id       String @id @default(uuid())
-  eventId  String
-  campusId String
-
-  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
-
-  @@unique([eventId, campusId])
-  @@map("event_campuses")
 }
 
 enum CommitteeStatus {
@@ -314,81 +370,4 @@ enum CommitteeDocumentType {
   REPORT
   CIRCULAR
   OTHER
-}
-
-model Committee {
-  id               String            @id @default(uuid())
-  title            String
-  slug             String            @unique
-  category         String?
-  shortDescription String?           @db.Text
-  description      String?           @db.Text
-  objective        String?           @db.Text
-  committeeType    String?
-  academicSession  String?
-  tenureFrom       DateTime?
-  tenureTo         DateTime?
-  bannerImage      String?
-  status           CommitteeStatus   @default(DRAFT)
-  publishDate      DateTime?
-  displayOrder     Int               @default(0)
-  isMainWebsite    Boolean           @default(false)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-
-  members          CommitteeMember[]
-  documents        CommitteeDocument[]
-  campuses         CommitteeCampus[]
-
-  @@map("committees")
-}
-
-model CommitteeMember {
-  id            String    @id @default(uuid())
-  committeeId   String
-  name          String
-  designation   String?
-  committeeRole String
-  department    String?
-  photo         String?
-  email         String?
-  phone         String?
-  tenureFrom    DateTime?
-  tenureTo      DateTime?
-  displayOrder  Int       @default(0)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  committee     Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
-
-  @@map("committee_members")
-}
-
-model CommitteeDocument {
-  id           String                @id @default(uuid())
-  committeeId  String
-  title        String
-  description  String?               @db.Text
-  documentUrl  String
-  fileType     String
-  documentType CommitteeDocumentType @default(OTHER)
-  displayOrder Int                   @default(0)
-  createdAt    DateTime              @default(now())
-
-  committee    Committee             @relation(fields: [committeeId], references: [id], onDelete: Cascade)
-
-  @@map("committee_documents")
-}
-
-model CommitteeCampus {
-  id          String    @id @default(uuid())
-  committeeId String
-  campusId    String
-
-  committee   Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
-  campus      Campus    @relation(fields: [campusId], references: [id], onDelete: Cascade)
-
-  @@unique([committeeId, campusId])
-  @@map("committee_campuses")
 }
