@@ -29,17 +29,17 @@ app.use(helmet());
 
 // 2. CORS configuration
 const allowedOrigins = [
-  'http://localhost:8080/',
-  'http://localhost:5173/',
-  'https://jwsgn.janhitgroup.com/',
-  'https://janhitgroup.com/',
-  'https://www.janhitgroup.com/',
-  'https://jclgn.janhitgroup.com/',
-  'https://jieign.janhitgroup.com/',
-  'https://jiegzb.janhitgroup.com/',
-  'https://jdcsre.janhitgroup.com/',
-  'https://jwsgzb.janhitgroup.com/',
-  'https://jwssre.janhitgroup.com/'
+  'http://localhost:8080',
+  'http://localhost:5173',
+  'https://jwsgn.janhitgroup.com',
+  'https://janhitgroup.com',
+  'https://www.janhitgroup.com',
+  'https://jclgn.janhitgroup.com',
+  'https://jieign.janhitgroup.com',
+  'https://jiegzb.janhitgroup.com',
+  'https://jdcsre.janhitgroup.com',
+  'https://jwsgzb.janhitgroup.com',
+  'https://jwssre.janhitgroup.com'
 ];
 
 if (process.env.FRONTEND_URL) {
