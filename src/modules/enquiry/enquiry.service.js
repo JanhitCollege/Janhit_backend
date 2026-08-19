@@ -118,6 +118,7 @@ export const processEnquiry = async (origin, enquiryData) => {
           { shortName: { equals: campusInput, mode: 'insensitive' } },
           { code: { equals: campusInput, mode: 'insensitive' } },
           { slug: { equals: campusInput, mode: 'insensitive' } },
+          { subdomain: { equals: campusInput, mode: 'insensitive' } },
         ],
       },
     });
