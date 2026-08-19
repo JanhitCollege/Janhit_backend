@@ -142,6 +142,11 @@ export const processEnquiry = async (origin, enquiryData) => {
 
   // 3. Reject request if campus cannot be resolved to prevent invalid DB data
   if (!campus) {
+    const allCampuses = await prisma.campus.findMany({
+      select: { id: true, name: true, subdomain: true, code: true }
+    });
+    logger.error(`Campus resolution failed. Input: '${enquiryData.campus}', Origin Hostname: '${hostname}'. Registered Campuses: ${JSON.stringify(allCampuses)}`);
+    
     throw new CustomError(
       `Could not resolve campus matching the request. Please select a valid campus or check the origin configuration.`,
       400

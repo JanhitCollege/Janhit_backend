@@ -21,6 +21,9 @@ import CustomError from './utils/CustomError.js';
 
 const app = express();
 
+// Trust proxy (needed for accurate client IP identification on EC2/Nginx/ALB)
+app.set('trust proxy', 1);
+
 // Serve static uploads directory for local file fallback  
 
 app.use('/uploads', express.static('uploads'));
