@@ -90,8 +90,8 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // 4. Body parsing & cookie extraction
-app.use(express.json({ limit: '10kb' })); // Limits request body size to 10kb
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 // 5. Gzip Compression
