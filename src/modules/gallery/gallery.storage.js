@@ -92,7 +92,7 @@ export class S3StorageDriver extends BaseStorageDriver {
         Key: urlKey,
         Body: body,
         ContentType: mimeType,
-        ACL: 'public-read'
+        
       });
 
       await this.s3Client.send(command);
