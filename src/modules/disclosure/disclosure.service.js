@@ -459,8 +459,8 @@ export const bulkUpdateCampusDetailsAdmin = async (campusId, details) => {
   }
 
   let updatedDetails = [];
-  try {
-    if (prisma.campusDisclosureDetail) {
+  if (prisma.campusDisclosureDetail) {
+    try {
       const upsertPromises = details.map((item, index) => {
         const valStr = typeof item.metric_value === 'object' 
           ? JSON.stringify(item.metric_value) 
@@ -496,18 +496,64 @@ export const bulkUpdateCampusDetailsAdmin = async (campusId, details) => {
         where: { campusId: campus.id },
         orderBy: { sortOrder: 'asc' },
       });
+    } catch (err) {
+      console.error('CampusDisclosureDetail Prisma upsert notice:', err.message);
     }
-  } catch (err) {
-    console.error('CampusDisclosureDetail bulk update table error:', err.message);
-    updatedDetails = details.map((item, index) => ({
-      id: `temp-${index}`,
-      campusId: campus.id,
-      sectionCode: item.section_code,
-      metricKey: item.metric_key,
-      metricLabel: item.metric_label || '',
-      metricValue: typeof item.metric_value === 'object' ? JSON.stringify(item.metric_value) : String(item.metric_value || ''),
-      sortOrder: item.sort_order !== undefined ? parseInt(item.sort_order, 10) : index,
-    }));
+  }
+
+  if (updatedDetails.length === 0) {
+    for (let index = 0; index < details.length; index++) {
+      const item = details[index];
+      const valStr = typeof item.metric_value === 'object'
+        ? JSON.stringify(item.metric_value)
+        : String(item.metric_value !== undefined && item.metric_value !== null ? item.metric_value : '');
+      const sortOrd = item.sort_order !== undefined ? parseInt(item.sort_order, 10) : index;
+      const detailId = crypto.randomUUID();
+
+      try {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "campus_disclosure_details" ("id", "campus_id", "section_code", "metric_key", "metric_label", "metric_value", "sort_order", "created_at", "updated_at")
+           VALUES ($1, $2, $3::"DisclosureSection", $4, $5, $6, $7, NOW(), NOW())
+           ON CONFLICT ("campus_id", "section_code", "metric_key") 
+           DO UPDATE SET "metric_label" = EXCLUDED."metric_label", "metric_value" = EXCLUDED."metric_value", "sort_order" = EXCLUDED."sort_order", "updated_at" = NOW()`,
+          detailId,
+          campus.id,
+          item.section_code,
+          item.metric_key,
+          item.metric_label || '',
+          valStr,
+          sortOrd
+        );
+      } catch (e1) {
+        try {
+          await prisma.$executeRawUnsafe(
+            `INSERT INTO "campus_disclosure_details" ("id", "campus_id", "section_code", "metric_key", "metric_label", "metric_value", "sort_order", "created_at", "updated_at")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+             ON CONFLICT ("campus_id", "section_code", "metric_key") 
+             DO UPDATE SET "metric_label" = EXCLUDED."metric_label", "metric_value" = EXCLUDED."metric_value", "sort_order" = EXCLUDED."sort_order", "updated_at" = NOW()`,
+            detailId,
+            campus.id,
+            item.section_code,
+            item.metric_key,
+            item.metric_label || '',
+            valStr,
+            sortOrd
+          );
+        } catch (e2) {
+          console.error(`Raw SQL upsert detail failed for ${item.metric_key}:`, e2.message);
+        }
+      }
+    }
+
+    try {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT id, campus_id AS "campusId", section_code AS "sectionCode", metric_key AS "metricKey", metric_label AS "metricLabel", metric_value AS "metricValue", sort_order AS "sortOrder" FROM "campus_disclosure_details" WHERE campus_id = $1 ORDER BY sort_order ASC`,
+        campus.id
+      );
+      if (Array.isArray(rows)) {
+        updatedDetails = rows;
+      }
+    } catch (e) {}
   }
 
   return updatedDetails;
