@@ -68,6 +68,14 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
         where: { campusId: campus.id },
         orderBy: { sortOrder: 'asc' },
       });
+    } else {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT id, campus_id AS "campusId", section_code AS "sectionCode", metric_key AS "metricKey", metric_label AS "metricLabel", metric_value AS "metricValue", sort_order AS "sortOrder" FROM "campus_disclosure_details" WHERE campus_id = $1 ORDER BY sort_order ASC`,
+        campus.id
+      );
+      if (Array.isArray(rows)) {
+        details = rows;
+      }
     }
   } catch (err) {
     console.error('CampusDisclosureDetail query error:', err.message);
@@ -84,6 +92,14 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
         },
         orderBy: { createdAt: 'desc' },
       });
+    } else {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT id, campus_id AS "campusId", category_code AS "categoryCode", title, doc_number AS "docNumber", file_url AS "fileUrl", file_size AS "fileSize", file_name AS "fileName", mime_type AS "mimeType" FROM "disclosure_documents" WHERE campus_id = $1 AND is_active = true ORDER BY created_at DESC`,
+        campus.id
+      );
+      if (Array.isArray(rows)) {
+        documents = rows;
+      }
     }
   } catch (err) {
     console.error('DisclosureDocument query error:', err.message);
@@ -97,6 +113,16 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
       label: d.metricLabel,
       value: d.metricValue,
     }));
+
+  // Populate basic campus info into generalInfo if empty
+  if (generalInfo.length === 0 && campus) {
+    if (campus.name) generalInfo.push({ id: 'c-1', key: 'SCHOOL_NAME', label: 'NAME OF THE SCHOOL / COLLEGE', value: campus.name });
+    if (campus.affiliationNo || campus.affiliation_no) generalInfo.push({ id: 'c-2', key: 'AFFILIATION_NO', label: 'AFFILIATION NO. (IF APPLICABLE)', value: campus.affiliationNo || campus.affiliation_no });
+    if (campus.schoolCode || campus.school_code) generalInfo.push({ id: 'c-3', key: 'SCHOOL_CODE', label: 'SCHOOL CODE / REGISTRATION NO.', value: campus.schoolCode || campus.school_code });
+    if (campus.address) generalInfo.push({ id: 'c-4', key: 'ADDRESS', label: 'COMPLETE ADDRESS WITH PIN CODE', value: campus.address });
+    if (campus.email) generalInfo.push({ id: 'c-5', key: 'EMAIL', label: 'SCHOOL / COLLEGE EMAIL ID', value: campus.email });
+    if (campus.phone) generalInfo.push({ id: 'c-6', key: 'CONTACT_NO', label: 'CONTACT DETAILS (LANDLINE/MOBILE)', value: campus.phone });
+  }
 
   const staff = details
     .filter((d) => d.sectionCode === 'D_STAFF')
