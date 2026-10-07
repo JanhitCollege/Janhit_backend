@@ -16,6 +16,7 @@ import enquiryRouter from './modules/enquiry/enquiry.routes.js';
 import downloadRouter from './modules/downloads/download.routes.js';
 import eventRouter from './modules/event/event.routes.js';
 import committeeRouter from './modules/committee/committee.routes.js';
+import disclosureRouter from './modules/disclosure/disclosure.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import CustomError from './utils/CustomError.js';
 
@@ -124,6 +125,7 @@ app.use('/api', enquiryRouter);
 app.use('/api', downloadRouter);
 app.use('/api', eventRouter);
 app.use('/api', committeeRouter);
+app.use('/api/v1', disclosureRouter);
 
 // 9. Handle Undefined Routes
 app.all('*', (req, res, next) => {
