@@ -60,7 +60,7 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
     };
   }
 
-  // Safe fetch for details
+  // Safe fetch for details with robust raw query fallback
   let details = [];
   try {
     if (prisma.campusDisclosureDetail) {
@@ -68,20 +68,26 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
         where: { campusId: campus.id },
         orderBy: { sortOrder: 'asc' },
       });
-    } else {
+    }
+  } catch (err) {
+    console.error('CampusDisclosureDetail findMany notice:', err.message);
+  }
+
+  if (!Array.isArray(details) || details.length === 0) {
+    try {
       const rows = await prisma.$queryRawUnsafe(
         `SELECT id, campus_id AS "campusId", section_code AS "sectionCode", metric_key AS "metricKey", metric_label AS "metricLabel", metric_value AS "metricValue", sort_order AS "sortOrder" FROM "campus_disclosure_details" WHERE campus_id = $1 ORDER BY sort_order ASC`,
         campus.id
       );
-      if (Array.isArray(rows)) {
+      if (Array.isArray(rows) && rows.length > 0) {
         details = rows;
       }
+    } catch (err) {
+      console.error('CampusDisclosureDetail raw query notice:', err.message);
     }
-  } catch (err) {
-    console.error('CampusDisclosureDetail query error:', err.message);
   }
 
-  // Safe fetch for documents
+  // Safe fetch for documents with robust raw query fallback
   let documents = [];
   try {
     if (prisma.disclosureDocument) {
@@ -92,21 +98,27 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
         },
         orderBy: { createdAt: 'desc' },
       });
-    } else {
+    }
+  } catch (err) {
+    console.error('DisclosureDocument findMany notice:', err.message);
+  }
+
+  if (!Array.isArray(documents) || documents.length === 0) {
+    try {
       const rows = await prisma.$queryRawUnsafe(
         `SELECT id, campus_id AS "campusId", category_code AS "categoryCode", title, doc_number AS "docNumber", file_url AS "fileUrl", file_size AS "fileSize", file_name AS "fileName", mime_type AS "mimeType" FROM "disclosure_documents" WHERE campus_id = $1 AND is_active = true ORDER BY created_at DESC`,
         campus.id
       );
-      if (Array.isArray(rows)) {
+      if (Array.isArray(rows) && rows.length > 0) {
         documents = rows;
       }
+    } catch (err) {
+      console.error('DisclosureDocument raw query notice:', err.message);
     }
-  } catch (err) {
-    console.error('DisclosureDocument query error:', err.message);
   }
 
   const generalInfo = details
-    .filter((d) => d.sectionCode === 'A_GENERAL_INFO')
+    .filter((d) => String(d.sectionCode || '').toUpperCase() === 'A_GENERAL_INFO')
     .map((d) => ({
       id: d.id,
       key: d.metricKey,
@@ -114,7 +126,7 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
       value: d.metricValue,
     }));
 
-  // Populate basic campus info into generalInfo if empty
+  // Populate basic campus info into generalInfo if still empty
   if (generalInfo.length === 0 && campus) {
     if (campus.name) generalInfo.push({ id: 'c-1', key: 'SCHOOL_NAME', label: 'NAME OF THE SCHOOL / COLLEGE', value: campus.name });
     if (campus.affiliationNo || campus.affiliation_no) generalInfo.push({ id: 'c-2', key: 'AFFILIATION_NO', label: 'AFFILIATION NO. (IF APPLICABLE)', value: campus.affiliationNo || campus.affiliation_no });
@@ -125,7 +137,7 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
   }
 
   const staff = details
-    .filter((d) => d.sectionCode === 'D_STAFF')
+    .filter((d) => String(d.sectionCode || '').toUpperCase() === 'D_STAFF')
     .map((d) => ({
       id: d.id,
       key: d.metricKey,
@@ -134,7 +146,7 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
     }));
 
   const infrastructure = details
-    .filter((d) => d.sectionCode === 'E_INFRASTRUCTURE')
+    .filter((d) => String(d.sectionCode || '').toUpperCase() === 'E_INFRASTRUCTURE')
     .map((d) => ({
       id: d.id,
       key: d.metricKey,
