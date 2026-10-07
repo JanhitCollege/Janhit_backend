@@ -79,6 +79,19 @@ export const deleteDisclosureDocumentAdmin = async (req, res, next) => {
   }
 };
 
+export const getCampusDisclosuresAdmin = async (req, res, next) => {
+  try {
+    const { campusId } = req.params;
+    const data = await disclosureService.getCampusDisclosuresPublic(campusId);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const bulkUpdateCampusDetailsAdmin = async (req, res, next) => {
   try {
     const { campusId } = req.params;

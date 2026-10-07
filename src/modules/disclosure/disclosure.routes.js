@@ -47,6 +47,20 @@ router.delete(
   disclosureController.deleteDisclosureDocumentAdmin
 );
 
+router.get(
+  '/admin/campuses/:campusId/disclosure-details',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureController.getCampusDisclosuresAdmin
+);
+
+router.get(
+  '/admin/campuses/:campusId/disclosures',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureController.getCampusDisclosuresAdmin
+);
+
 router.put(
   '/admin/campuses/:campusId/disclosure-details',
   protect,
