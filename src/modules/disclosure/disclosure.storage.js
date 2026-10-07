@@ -31,13 +31,14 @@ export const uploadDisclosureFile = async (file, campusSlug = 'global') => {
   const uniqueName = `${sanitizedOriginalName}-${crypto.randomUUID().substring(0, 8)}-${Date.now()}${fileExt}`;
   const fileSizeFormatted = formatBytes(file.size);
 
-  if (process.env.NODE_ENV === 'production') {
-    validateS3Config();
+  const hasS3Config = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_BUCKET_NAME);
+
+  if (hasS3Config) {
     const key = `disclosures/${campusSlug}/${uniqueName}`.replace(/\\/g, '/');
 
     try {
       const s3Client = new S3Client({
-        region: process.env.AWS_REGION,
+        region: process.env.AWS_REGION || 'ap-south-1',
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID,
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -52,7 +53,7 @@ export const uploadDisclosureFile = async (file, campusSlug = 'global') => {
       });
 
       await s3Client.send(command);
-      const fileUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+      const fileUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${key}`;
 
       return {
         fileUrl,
@@ -61,30 +62,31 @@ export const uploadDisclosureFile = async (file, campusSlug = 'global') => {
         fileSize: fileSizeFormatted,
       };
     } catch (error) {
-      throw new CustomError(`AWS S3 Upload Failed: ${error.message}`, 500);
+      console.error('AWS S3 Upload Notice: Failed to upload to S3, using local file fallback.', error.message);
     }
-  } else {
-    const relativeDir = path.join('uploads', 'disclosures', campusSlug);
-    const absoluteDir = path.join(process.cwd(), relativeDir);
-    const relativePath = path.join(relativeDir, uniqueName).replace(/\\/g, '/');
-    const absolutePath = path.join(process.cwd(), relativePath);
+  }
 
-    try {
-      if (!fs.existsSync(absoluteDir)) {
-        fs.mkdirSync(absoluteDir, { recursive: true });
-      }
+  // Local storage fallback
+  const relativeDir = path.join('uploads', 'disclosures', campusSlug);
+  const absoluteDir = path.join(process.cwd(), relativeDir);
+  const relativePath = path.join(relativeDir, uniqueName).replace(/\\/g, '/');
+  const absolutePath = path.join(process.cwd(), relativePath);
 
-      fs.writeFileSync(absolutePath, file.buffer);
-
-      return {
-        fileUrl: relativePath,
-        fileName: file.originalname,
-        mimeType: file.mimetype || 'application/pdf',
-        fileSize: fileSizeFormatted,
-      };
-    } catch (error) {
-      throw new CustomError(`Local File Upload Failed: ${error.message}`, 500);
+  try {
+    if (!fs.existsSync(absoluteDir)) {
+      fs.mkdirSync(absoluteDir, { recursive: true });
     }
+
+    fs.writeFileSync(absolutePath, file.buffer);
+
+    return {
+      fileUrl: relativePath,
+      fileName: file.originalname,
+      mimeType: file.mimetype || 'application/pdf',
+      fileSize: fileSizeFormatted,
+    };
+  } catch (error) {
+    throw new CustomError(`Local File Upload Failed: ${error.message}`, 500);
   }
 };
 
