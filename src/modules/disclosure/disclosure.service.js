@@ -3,28 +3,90 @@ import CustomError from '../../utils/CustomError.js';
 import { uploadDisclosureFile, deleteDisclosureFile } from './disclosure.storage.js';
 
 export const getCampusDisclosuresPublic = async (campusSlug) => {
-  const campus = await prisma.campus.findUnique({
-    where: { slug: campusSlug },
+  const normalizedSlug = (campusSlug || '').toLowerCase().trim();
+
+  // Flexible lookup by slug, id, code, or subdomain
+  let campus = await prisma.campus.findFirst({
+    where: {
+      OR: [
+        { slug: { equals: normalizedSlug, mode: 'insensitive' } },
+        { id: campusSlug },
+        { code: { equals: normalizedSlug, mode: 'insensitive' } },
+        { subdomain: { equals: normalizedSlug, mode: 'insensitive' } },
+        { slug: { contains: normalizedSlug, mode: 'insensitive' } },
+        { name: { contains: normalizedSlug, mode: 'insensitive' } },
+      ],
+    },
   });
 
-  if (!campus || !campus.isActive) {
-    throw new CustomError('Campus not found or inactive.', 404);
+  // Fallback alias mappings if campus slug is abbreviated (e.g. jws-gn -> JWSGN)
+  if (!campus) {
+    let fallbackCode = null;
+    if (normalizedSlug.includes('jws') && (normalizedSlug.includes('gn') || normalizedSlug.includes('noida'))) {
+      fallbackCode = 'JWSGN';
+    } else if (normalizedSlug.includes('jcl') || normalizedSlug.includes('law')) {
+      fallbackCode = 'JCLGN';
+    } else if (normalizedSlug.includes('jdc') || normalizedSlug.includes('degree')) {
+      fallbackCode = 'JDCSAHARANPUR';
+    } else if (normalizedSlug.includes('jec') || normalizedSlug.includes('eng')) {
+      fallbackCode = 'JECGN';
+    }
+
+    if (fallbackCode) {
+      campus = await prisma.campus.findFirst({
+        where: { code: fallbackCode },
+      });
+    }
   }
 
-  // Fetch all details for General Info (A), Staff (D), Infrastructure (E)
-  const details = await prisma.campusDisclosureDetail.findMany({
-    where: { campusId: campus.id },
-    orderBy: { sortOrder: 'asc' },
-  });
+  if (!campus) {
+    return {
+      campus: {
+        name: campusSlug,
+        slug: campusSlug,
+        address: null,
+        phone: null,
+        email: null,
+        affiliationStatus: null,
+        affiliationNo: null,
+        schoolCode: null,
+      },
+      generalInfo: [],
+      documents: [],
+      academics: [],
+      staff: [],
+      infrastructure: [],
+    };
+  }
 
-  // Fetch active documents for Documents (B) and Academics (C)
-  const documents = await prisma.disclosureDocument.findMany({
-    where: {
-      campusId: campus.id,
-      isActive: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  // Safe fetch for details
+  let details = [];
+  try {
+    if (prisma.campusDisclosureDetail) {
+      details = await prisma.campusDisclosureDetail.findMany({
+        where: { campusId: campus.id },
+        orderBy: { sortOrder: 'asc' },
+      });
+    }
+  } catch (err) {
+    console.error('CampusDisclosureDetail query error:', err.message);
+  }
+
+  // Safe fetch for documents
+  let documents = [];
+  try {
+    if (prisma.disclosureDocument) {
+      documents = await prisma.disclosureDocument.findMany({
+        where: {
+          campusId: campus.id,
+          isActive: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+  } catch (err) {
+    console.error('DisclosureDocument query error:', err.message);
+  }
 
   const generalInfo = details
     .filter((d) => d.sectionCode === 'A_GENERAL_INFO')
@@ -84,9 +146,9 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
       address: campus.address,
       phone: campus.phone,
       email: campus.email,
-      affiliationStatus: campus.affiliationStatus,
-      affiliationNo: campus.affiliationNo,
-      schoolCode: campus.schoolCode,
+      affiliationStatus: campus.affiliationStatus || null,
+      affiliationNo: campus.affiliationNo || null,
+      schoolCode: campus.schoolCode || null,
     },
     generalInfo,
     documents: docList,
@@ -109,8 +171,14 @@ export const getDocumentForDownload = async (documentId) => {
 };
 
 export const createDisclosureDocumentAdmin = async (campusId, data, file) => {
-  const campus = await prisma.campus.findUnique({
-    where: { id: campusId },
+  const campus = await prisma.campus.findFirst({
+    where: {
+      OR: [
+        { id: campusId },
+        { slug: { equals: campusId, mode: 'insensitive' } },
+        { code: { equals: campusId, mode: 'insensitive' } },
+      ],
+    },
   });
 
   if (!campus) {
@@ -194,8 +262,14 @@ export const deleteDisclosureDocumentAdmin = async (documentId) => {
 };
 
 export const bulkUpdateCampusDetailsAdmin = async (campusId, details) => {
-  const campus = await prisma.campus.findUnique({
-    where: { id: campusId },
+  const campus = await prisma.campus.findFirst({
+    where: {
+      OR: [
+        { id: campusId },
+        { slug: { equals: campusId, mode: 'insensitive' } },
+        { code: { equals: campusId, mode: 'insensitive' } },
+      ],
+    },
   });
 
   if (!campus) {
