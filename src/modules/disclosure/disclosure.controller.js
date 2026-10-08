@@ -38,6 +38,31 @@ export const downloadDisclosureDocumentPublic = async (req, res, next) => {
   }
 };
 
+export const getAllCampusesSummaryAdmin = async (req, res, next) => {
+  try {
+    const campuses = await disclosureService.getAllCampusesDisclosureSummaryAdmin();
+    res.status(200).json({
+      success: true,
+      data: campuses,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getCampusDisclosuresAdmin = async (req, res, next) => {
+  try {
+    const { campusId } = req.params;
+    const data = await disclosureService.getCampusDisclosuresPublic(campusId);
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createDisclosureDocumentAdmin = async (req, res, next) => {
   try {
     const { campusId } = req.params;
@@ -79,28 +104,56 @@ export const deleteDisclosureDocumentAdmin = async (req, res, next) => {
   }
 };
 
-export const getCampusDisclosuresAdmin = async (req, res, next) => {
+export const bulkUpdateCampusDetailsAdmin = async (req, res, next) => {
   try {
     const { campusId } = req.params;
-    const data = await disclosureService.getCampusDisclosuresPublic(campusId);
+    const updatedDetails = await disclosureService.unifiedUpdateCampusDisclosuresAdmin(campusId, req.body);
     res.status(200).json({
       success: true,
-      data,
+      message: 'Campus disclosure details updated successfully.',
+      data: updatedDetails,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const bulkUpdateCampusDetailsAdmin = async (req, res, next) => {
+export const batchUpdateCampusDetailsAdmin = async (req, res, next) => {
   try {
-    const { campusId } = req.params;
-    const { details } = req.body;
-    const updatedDetails = await disclosureService.bulkUpdateCampusDetailsAdmin(campusId, details);
+    const { campusIds } = req.body;
+    const results = await disclosureService.batchUpdateCampusDisclosuresAdmin(campusIds, req.body);
     res.status(200).json({
       success: true,
-      message: 'Campus disclosure details updated successfully.',
-      data: updatedDetails,
+      message: 'Batch disclosure update processed for selected campuses.',
+      data: results,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteCampusMetricAdmin = async (req, res, next) => {
+  try {
+    const { campusId, metricKey } = req.params;
+    const result = await disclosureService.deleteCampusMetricAdmin(campusId, metricKey);
+    res.status(200).json({
+      success: true,
+      message: `Metric '${metricKey}' deleted successfully.`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const clearAllCampusMetricsAdmin = async (req, res, next) => {
+  try {
+    const { campusId } = req.params;
+    const result = await disclosureService.clearAllCampusMetricsAdmin(campusId);
+    res.status(200).json({
+      success: true,
+      message: 'All campus disclosure metrics cleared successfully.',
+      data: result,
     });
   } catch (error) {
     next(error);

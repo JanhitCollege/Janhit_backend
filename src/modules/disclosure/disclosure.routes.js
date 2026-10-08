@@ -22,6 +22,73 @@ router.get(
 // ==========================================
 // ADMIN ROUTES (Requires JWT Auth & Admin Role)
 // ==========================================
+
+// Get list of all campuses with disclosure counts (for admin dropdown / branch selector)
+router.get(
+  '/admin/disclosures/campuses',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureController.getAllCampusesSummaryAdmin
+);
+
+// Get disclosures for specific campus
+router.get(
+  '/admin/campuses/:campusId/disclosures',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureController.getCampusDisclosuresAdmin
+);
+
+router.get(
+  '/admin/campuses/:campusId/disclosure-details',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureController.getCampusDisclosuresAdmin
+);
+
+// Unified single update API for all fields (Section A, D, E & Teacher Roster)
+router.put(
+  '/admin/campuses/:campusId/disclosures',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureValidation.validateBulkUpdateDetails,
+  disclosureController.bulkUpdateCampusDetailsAdmin
+);
+
+router.put(
+  '/admin/campuses/:campusId/disclosure-details',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureValidation.validateBulkUpdateDetails,
+  disclosureController.bulkUpdateCampusDetailsAdmin
+);
+
+// Batch update API for multiple selected campuses
+router.put(
+  '/admin/disclosures/batch',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureValidation.validateBatchUpdate,
+  disclosureController.batchUpdateCampusDetailsAdmin
+);
+
+// Delete/Clear all disclosure metrics for a campus
+router.delete(
+  '/admin/campuses/:campusId/disclosures',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureController.clearAllCampusMetricsAdmin
+);
+
+// Delete specific disclosure metric key for a campus
+router.delete(
+  '/admin/campuses/:campusId/disclosures/metrics/:metricKey',
+  protect,
+  restrictTo('ADMIN'),
+  disclosureController.deleteCampusMetricAdmin
+);
+
+// Statutory Document Management (PDF Upload, Update, Delete)
 router.post(
   '/admin/campuses/:campusId/documents',
   protect,
@@ -45,28 +112,6 @@ router.delete(
   protect,
   restrictTo('ADMIN'),
   disclosureController.deleteDisclosureDocumentAdmin
-);
-
-router.get(
-  '/admin/campuses/:campusId/disclosure-details',
-  protect,
-  restrictTo('ADMIN'),
-  disclosureController.getCampusDisclosuresAdmin
-);
-
-router.get(
-  '/admin/campuses/:campusId/disclosures',
-  protect,
-  restrictTo('ADMIN'),
-  disclosureController.getCampusDisclosuresAdmin
-);
-
-router.put(
-  '/admin/campuses/:campusId/disclosure-details',
-  protect,
-  restrictTo('ADMIN'),
-  disclosureValidation.validateBulkUpdateDetails,
-  disclosureController.bulkUpdateCampusDetailsAdmin
 );
 
 export default router;

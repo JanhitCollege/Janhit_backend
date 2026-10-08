@@ -3,6 +3,136 @@ import CustomError from '../../utils/CustomError.js';
 import crypto from 'crypto';
 import { uploadDisclosureFile, deleteDisclosureFile } from './disclosure.storage.js';
 
+const DEFAULT_LABELS = {
+  // Section A: General Info
+  SCHOOL_NAME: 'NAME OF THE SCHOOL / COLLEGE',
+  AFFILIATION_NO: 'AFFILIATION NO. (IF APPLICABLE)',
+  SCHOOL_CODE: 'SCHOOL CODE / REGISTRATION NO.',
+  ADDRESS: 'COMPLETE ADDRESS WITH PIN CODE',
+  PRINCIPAL_NAME: 'PRINCIPAL / DIRECTOR NAME & QUALIFICATION',
+  EMAIL: 'SCHOOL / COLLEGE EMAIL ID',
+  CONTACT_NO: 'CONTACT DETAILS (LANDLINE/MOBILE)',
+  // Section D: Staff Metrics
+  TOTAL_TEACHERS: 'TOTAL NO. OF TEACHERS',
+  PGT_TEACHERS: 'PGT TEACHERS',
+  TGT_TEACHERS: 'TGT TEACHERS',
+  PRT_TEACHERS: 'PRT TEACHERS',
+  TEACHER_SECTION_RATIO: 'TEACHERS SECTION RATIO',
+  SPECIAL_EDUCATOR: 'DETAILS OF SPECIAL EDUCATOR',
+  COUNSELLOR: 'COUNSELLOR & WELLNESS TEACHER',
+  TEACHER_ROSTER: 'TEACHER DETAILS (PUBLIC ROSTER TABLE)',
+  // Section E: Infrastructure
+  TOTAL_CAMPUS_AREA: 'TOTAL CAMPUS AREA (SQ. MTR. / ACRES)',
+  CLASSROOMS_NO_SIZE: 'NO. AND SIZE OF CLASS ROOMS',
+  LABS_NO_SIZE: 'NO. AND SIZE OF LABORATORIES',
+  INTERNET_FACILITY: 'INTERNET FACILITY',
+  GIRLS_TOILETS: 'NO. OF GIRLS TOILETS',
+  BOYS_TOILETS: 'NO. OF BOYS TOILETS',
+  CCTV_COVERAGE: 'CCTV & SECURITY COVERAGE',
+};
+
+export const normalizePayloadToDetails = (payload) => {
+  if (Array.isArray(payload.details) && payload.details.length > 0) {
+    return payload.details;
+  }
+
+  const details = [];
+  let sortOrder = 0;
+
+  // Section A: General Info
+  if (payload.generalInfo && typeof payload.generalInfo === 'object') {
+    for (const [key, val] of Object.entries(payload.generalInfo)) {
+      if (val !== undefined && val !== null) {
+        details.push({
+          section_code: 'A_GENERAL_INFO',
+          metric_key: key,
+          metric_label: DEFAULT_LABELS[key] || key.replace(/_/g, ' '),
+          metric_value: typeof val === 'object' ? JSON.stringify(val) : String(val),
+          sort_order: sortOrder++,
+        });
+      }
+    }
+  }
+
+  // Section D: Staff Metrics
+  if (payload.staffMetrics && typeof payload.staffMetrics === 'object') {
+    for (const [key, val] of Object.entries(payload.staffMetrics)) {
+      if (val !== undefined && val !== null) {
+        details.push({
+          section_code: 'D_STAFF',
+          metric_key: key,
+          metric_label: DEFAULT_LABELS[key] || key.replace(/_/g, ' '),
+          metric_value: typeof val === 'object' ? JSON.stringify(val) : String(val),
+          sort_order: sortOrder++,
+        });
+      }
+    }
+  }
+
+  // Section D: Teacher Roster Table
+  if (Array.isArray(payload.teacherRoster)) {
+    details.push({
+      section_code: 'D_STAFF',
+      metric_key: 'TEACHER_ROSTER',
+      metric_label: DEFAULT_LABELS['TEACHER_ROSTER'],
+      metric_value: JSON.stringify(payload.teacherRoster),
+      sort_order: sortOrder++,
+    });
+  }
+
+  // Section E: Infrastructure
+  if (payload.infrastructure && typeof payload.infrastructure === 'object') {
+    for (const [key, val] of Object.entries(payload.infrastructure)) {
+      if (val !== undefined && val !== null) {
+        details.push({
+          section_code: 'E_INFRASTRUCTURE',
+          metric_key: key,
+          metric_label: DEFAULT_LABELS[key] || key.replace(/_/g, ' '),
+          metric_value: typeof val === 'object' ? JSON.stringify(val) : String(val),
+          sort_order: sortOrder++,
+        });
+      }
+    }
+  }
+
+  return details;
+};
+
+export const getAllCampusesDisclosureSummaryAdmin = async () => {
+  try {
+    const campuses = await prisma.campus.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        slug: true,
+        subdomain: true,
+        type: true,
+        address: true,
+        email: true,
+        phone: true,
+        affiliationNo: true,
+        schoolCode: true,
+        _count: {
+          select: {
+            disclosureDocuments: true,
+            disclosureDetails: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+    return campuses;
+  } catch (err) {
+    // Raw SQL fallback
+    const rows = await prisma.$queryRawUnsafe(
+      `SELECT id, name, code, slug, subdomain, type, address, email, phone, affiliation_no AS "affiliationNo", school_code AS "schoolCode" FROM "campuses" WHERE is_active = true ORDER BY name ASC`
+    );
+    return rows;
+  }
+};
+
 export const getCampusDisclosuresPublic = async (campusSlug) => {
   const normalizedSlug = (campusSlug || '').toLowerCase().trim();
 
@@ -43,6 +173,7 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
   if (!campus) {
     return {
       campus: {
+        id: null,
         name: campusSlug,
         slug: campusSlug,
         address: null,
@@ -57,6 +188,7 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
       academics: [],
       staff: [],
       infrastructure: [],
+      teacherRoster: [],
     };
   }
 
@@ -136,8 +268,20 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
     if (campus.phone) generalInfo.push({ id: 'c-6', key: 'CONTACT_NO', label: 'CONTACT DETAILS (LANDLINE/MOBILE)', value: campus.phone });
   }
 
+  let teacherRoster = [];
   const staff = details
     .filter((d) => String(d.sectionCode || '').toUpperCase() === 'D_STAFF')
+    .filter((d) => {
+      if (d.metricKey === 'TEACHER_ROSTER') {
+        try {
+          teacherRoster = JSON.parse(d.metricValue || '[]');
+        } catch (e) {
+          teacherRoster = [];
+        }
+        return false;
+      }
+      return true;
+    })
     .map((d) => ({
       id: d.id,
       key: d.metricKey,
@@ -180,8 +324,10 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
 
   return {
     campus: {
+      id: campus.id,
       name: campus.name,
       slug: campus.slug,
+      code: campus.code,
       address: campus.address,
       phone: campus.phone,
       email: campus.email,
@@ -193,6 +339,7 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
     documents: docList,
     academics: academicList,
     staff,
+    teacherRoster,
     infrastructure,
   };
 };
@@ -267,7 +414,7 @@ export const createDisclosureDocumentAdmin = async (campusId, data, file) => {
     }
   }
 
-  // Fallback raw query if Prisma Client is missing the model property
+  // Fallback raw query
   try {
     await prisma.$executeRawUnsafe(
       `INSERT INTO "disclosure_documents" 
@@ -455,6 +602,9 @@ export const bulkUpdateCampusDetailsAdmin = async (campusId, details) => {
         if (item.metric_key === 'AFFILIATION_NO' || item.metric_key === 'affiliation_no') campusUpdateData.affiliationNo = String(item.metric_value || '');
         if (item.metric_key === 'SCHOOL_CODE' || item.metric_key === 'school_code') campusUpdateData.schoolCode = String(item.metric_value || '');
         if (item.metric_key === 'AFFILIATION_STATUS' || item.metric_key === 'affiliation_status') campusUpdateData.affiliationStatus = String(item.metric_value || '');
+        if (item.metric_key === 'ADDRESS' || item.metric_key === 'address') campusUpdateData.address = String(item.metric_value || '');
+        if (item.metric_key === 'EMAIL' || item.metric_key === 'email') campusUpdateData.email = String(item.metric_value || '');
+        if (item.metric_key === 'CONTACT_NO' || item.metric_key === 'phone') campusUpdateData.phone = String(item.metric_value || '');
       }
     }
   }
@@ -571,3 +721,93 @@ export const bulkUpdateCampusDetailsAdmin = async (campusId, details) => {
   return updatedDetails;
 };
 
+export const unifiedUpdateCampusDisclosuresAdmin = async (campusId, payload) => {
+  const details = normalizePayloadToDetails(payload);
+  return await bulkUpdateCampusDetailsAdmin(campusId, details);
+};
+
+export const batchUpdateCampusDisclosuresAdmin = async (campusIds, payload) => {
+  const details = normalizePayloadToDetails(payload);
+  const results = [];
+
+  for (const id of campusIds) {
+    try {
+      const updated = await bulkUpdateCampusDetailsAdmin(id, details);
+      results.push({ campusId: id, success: true, updatedCount: updated.length });
+    } catch (err) {
+      results.push({ campusId: id, success: false, error: err.message });
+    }
+  }
+
+  return results;
+};
+
+export const deleteCampusMetricAdmin = async (campusId, metricKey) => {
+  const campus = await prisma.campus.findFirst({
+    where: {
+      OR: [
+        { id: campusId },
+        { slug: { equals: campusId, mode: 'insensitive' } },
+        { code: { equals: campusId, mode: 'insensitive' } },
+      ],
+    },
+  });
+
+  if (!campus) {
+    throw new CustomError('Campus not found.', 404);
+  }
+
+  if (prisma.campusDisclosureDetail) {
+    try {
+      await prisma.campusDisclosureDetail.deleteMany({
+        where: {
+          campusId: campus.id,
+          metricKey,
+        },
+      });
+    } catch (e) {}
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "campus_disclosure_details" WHERE campus_id = $1 AND metric_key = $2`,
+      campus.id,
+      metricKey
+    );
+  } catch (e) {}
+
+  return { campusId: campus.id, metricKey };
+};
+
+export const clearAllCampusMetricsAdmin = async (campusId) => {
+  const campus = await prisma.campus.findFirst({
+    where: {
+      OR: [
+        { id: campusId },
+        { slug: { equals: campusId, mode: 'insensitive' } },
+        { code: { equals: campusId, mode: 'insensitive' } },
+      ],
+    },
+  });
+
+  if (!campus) {
+    throw new CustomError('Campus not found.', 404);
+  }
+
+  if (prisma.campusDisclosureDetail) {
+    try {
+      await prisma.campusDisclosureDetail.deleteMany({
+        where: { campusId: campus.id },
+      });
+    } catch (e) {}
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "campus_disclosure_details" WHERE campus_id = $1`,
+      campus.id
+    );
+  } catch (e) {}
+
+  return { campusId: campus.id, cleared: true };
+};
