@@ -272,9 +272,10 @@ export const getCampusDisclosuresPublic = async (campusSlug) => {
   const staff = details
     .filter((d) => String(d.sectionCode || '').toUpperCase() === 'D_STAFF')
     .filter((d) => {
-      if (d.metricKey === 'TEACHER_ROSTER') {
+      const keyUpper = String(d.metricKey || '').toUpperCase();
+      if (keyUpper === 'TEACHER_ROSTER' || keyUpper === 'TEACHER_ROSTER_JSON') {
         try {
-          teacherRoster = JSON.parse(d.metricValue || '[]');
+          teacherRoster = typeof d.metricValue === 'string' ? JSON.parse(d.metricValue || '[]') : (d.metricValue || []);
         } catch (e) {
           teacherRoster = [];
         }
